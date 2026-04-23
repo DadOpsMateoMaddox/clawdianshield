@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x /home/sudopwnr/.claude/memory-bridge/teardown.sh /home/sudopwnr/.claude/memory-bridge/watch.sh)",
+      "Bash(python3:*)"
+    ]
+  }
+}

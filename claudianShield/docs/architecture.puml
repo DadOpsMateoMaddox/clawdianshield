@@ -1,0 +1,98 @@
+@startuml ClawdianShield Architecture
+!theme plain
+skinparam componentStyle rectangle
+skinparam linetype ortho
+skinparam backgroundColor #FAFAFA
+skinparam component {
+  BackgroundColor #E8F4FD
+  BorderColor #2E86C1
+  FontColor #1A1A1A
+}
+skinparam database {
+  BackgroundColor #FEF9E7
+  BorderColor #D4AC0D
+}
+skinparam cloud {
+  BackgroundColor #EBF5FB
+  BorderColor #1A5276
+}
+
+title ClawdianShield — Component Architecture\n(as of April 2026)
+
+' ─── External ─────────────────────────────────────────────
+cloud "Linear (linear.app)" as Linear {
+  [Linear API] as LinearAPI
+  [ClawdianShield Project] as LinearProject
+  [Labels & Milestones] as Labels
+  LinearAPI --> LinearProject
+  LinearProject --> Labels
+}
+
+' ─── Runtime Config ───────────────────────────────────────
+package "Runtime Config (gitignored)" {
+  database ".env" as Env {
+    LINEAR_API_KEY
+  }
+  database ".env.example" as EnvExample {
+    LINEAR_API_KEY=<placeholder>
+  }
+}
+
+' ─── ClawdianShield Repo ──────────────────────────────────
+package "ClawdianShield" {
+
+  package "scripts/" {
+    [linear-bootstrap.js] as Bootstrap
+  }
+
+  package "collectors/" {
+    [FIM Collector] as FIM
+    [Process Collector] as Proc
+    [Network Collector] as Net
+  }
+
+  package "detections/" {
+    [Detection Rules] as Rules
+    [Evidence Mapping] as EvidMap
+  }
+
+  package "scenarios/" {
+    [Attack Scenarios] as Scenarios
+  }
+
+  package "victim/" {
+    [Workstation Artifacts] as Artifacts
+  }
+
+  package "evidence/" {
+    database "JSONL Events" as JSONLEvents
+  }
+
+  package "tests/" {
+    [Test Harness] as Tests
+  }
+
+  package "docs/" {
+    [architecture.puml] as ArchDiag
+    [sequence-bootstrap.puml] as SeqDiag
+  }
+}
+
+' ─── Relationships ────────────────────────────────────────
+Bootstrap ..> Env : reads via dotenv
+Bootstrap --> LinearAPI : @linear/sdk
+LinearAPI --> LinearProject : create/sync issues
+
+FIM --> JSONLEvents : emit JSONL
+Proc --> JSONLEvents : emit JSONL
+Net --> JSONLEvents : emit JSONL
+JSONLEvents --> Rules : analysed by
+Rules --> EvidMap : maps evidence
+
+Scenarios --> Artifacts : seeds
+Artifacts --> FIM : triggers events
+Tests --> FIM : validates
+Tests --> Proc : validates
+Tests --> Net : validates
+
+@enduml

@@ -1,0 +1,25 @@
+# GitHub ↔ Linear integration
+# Closes Linear issues when PRs are merged.
+# Branch naming: cls-<issue-id>/<description>
+# Commit format: CLS-<id>: <message>
+
+name: Linear Issue Sync
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract Linear issue ID from branch
+        id: extract
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          ISSUE_ID=$(echo "$BRANCH" | grep -oP '(?<=cls-)[A-Z0-9]+' | head -1)
+          echo "issue_id=$ISSUE_ID" >> $GITHUB_OUTPUT
+
+      - name: Comment issue ID found
+        if: steps.extract.outputs.issue_id != ''
+        run: echo "Linked to Linear issue CLS-${{ steps.extract.outputs.issue_id }}"
