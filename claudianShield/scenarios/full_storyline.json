@@ -1,0 +1,47 @@
+{
+  "scenario_id": "full_storyline_001",
+  "name": "Full Synthetic Intrusion Storyline",
+  "class_name": "multi_stage_black_box_emulation",
+  "mode": "lab_only",
+  "risk_level": "high",
+  "hosts": ["workstation-1", "server-1"],
+  "preconditions": [
+    "lab snapshot restored",
+    "telemetry collector active",
+    "monitored directories seeded",
+    "host inventory available"
+  ],
+  "behavior_profile": {
+    "auth_anomalies": true,
+    "file_tamper": true,
+    "staging": true,
+    "persistence_path_changes": true,
+    "anti_forensics": true,
+    "cleanup": true
+  },
+  "expected_telemetry": {
+    "file_events": true,
+    "process_events": true,
+    "auth_events": true,
+    "host_to_host_correlation": true,
+    "timeline_reconstruction": true,
+    "hash_deltas": true
+  },
+  "detections_expected": [
+    "auth_burst_detected",
+    "cross_host_activity_correlated",
+    "sensitive_path_modification_detected",
+    "anti_forensics_flagged"
+  ],
+  "success_criteria": [
+    "campaign appears as a single incident",
+    "all major stages represented in telemetry",
+    "coverage gaps listed in final report"
+  ],
+  "safety_constraints": {
+    "no_real_exploit_logic": true,
+    "no_real_credential_attack_logic": true,
+    "no_unapproved_network_spread": true,
+    "lab_environment_only": true
+  }
+}

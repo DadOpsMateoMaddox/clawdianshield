@@ -1,0 +1,28 @@
+{
+  "scenario_id": "auth_abuse_001",
+  "name": "Synthetic Multi-Host Auth Abuse",
+  "class_name": "auth_anomaly_stress",
+  "mode": "lab_only",
+  "risk_level": "high",
+  "hosts": ["workstation-1", "server-1"],
+  "preconditions": ["telemetry collector active", "host inventory available"],
+  "behavior_profile": {
+    "auth_anomalies": true
+  },
+  "expected_telemetry": {
+    "auth_events": true,
+    "host_to_host_correlation": true
+  },
+  "detections_expected": ["auth_burst_detected", "cross_host_activity_correlated"],
+  "success_criteria": [
+    "auth burst detected",
+    "success-after-failures escalated",
+    "source and target linked in one storyline"
+  ],
+  "safety_constraints": {
+    "no_real_exploit_logic": true,
+    "no_real_credential_attack_logic": true,
+    "no_unapproved_network_spread": true,
+    "lab_environment_only": true
+  }
+}

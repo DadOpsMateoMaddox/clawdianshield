@@ -1,6 +1,153 @@
 # ClawdianShield
 
-> A hands-on detection engineering lab — built to demonstrate real-world threat visibility, telemetry collection, and evidence packaging as a portfolio artifact.
+Detection engineering lab. Builds a full adversary emulation pipeline — telemetry collection, synthetic attack scenarios, detection scoring — as a working portfolio project, not a slide deck.
+
+---
+
+## The Point
+
+Most security portfolios are certs and writeups. This is different. The goal here is to build something that actually runs: a black-box adversary emulation system that induces defender-relevant artifacts on a controlled lab, measures whether your detection stack caught them, and scores the gaps.
+
+The scenarios don't use real exploit or credential attack logic. They're designed to produce the *signals* that defenders care about — auth anomalies, file tampering chains, cross-host traces, staging activity, persistence-path writes, anti-forensics signals — without depending on target internals or shipping anything operationally abusive. The point is detection coverage and telemetry quality, not malware cosplay.
+
+---
+
+## How It's Built
+
+The dev workflow is called **RE Claw Code** — reverse engineering discipline applied to software development. Every component maps to a Linear issue. Every branch names the issue. Every commit references it. Nothing gets built without a tracked reason.
+
+**Claude (Anthropic)** acts as AI pair programmer via Cursor for implementation, and as the red-team scenario generator via the API (wired in Phase 2 — `requirements.txt` has the stub). **GitHub Copilot** handles inline code review. Both are assistants. The engineering decisions are deliberate.
+
+The project backlog was seeded programmatically via `scripts/linear-bootstrap.js`. The GitHub ↔ Linear sync is wired via `.github/workflows/linear-sync.yml` — PR merges close Linear issues automatically.
+
+---
+
+## Architecture
+
+Four planes:
+
+```
+Control Plane       — load scenario JSON → validate safety constraints → build behavior plan
+Execution Plane     — run synthetic behaviors (file tamper, auth, remote artifacts, staging, etc.)
+Telemetry Plane     — collect, normalize, correlate events into JSONL
+Evaluation Plane    — score expected vs observed, generate JSON report with coverage gaps
+```
+
+Scenarios are JSON files describing what behaviors to run, what telemetry to expect, and what the success criteria are. The runner is deterministic and replayable. Docker wraps it so it runs cleanly anywhere.
+
+Full diagram: [`docs/architecture.puml`](docs/architecture.puml)  
+Bootstrap sequence: [`docs/sequence-bootstrap.puml`](docs/sequence-bootstrap.puml)
+
+---
+
+## Scenario Catalog
+
+| ID | Name | Risk | Hosts |
+|---|---|---|---|
+| `fim_burst_001` | FIM Burst Tamper Storm | medium | 1 |
+| `trusted_binary_blend_001` | Trusted Binary Tamper Blend | medium | 1 |
+| `sensitive_config_drift_001` | Sensitive Config Drift | medium | 1 |
+| `auth_abuse_001` | Synthetic Multi-Host Auth Abuse | high | 2 |
+| `remote_exec_artifacts_001` | Remote Execution Artifact Chain | high | 2 |
+| `collection_staging_001` | Collection and Staging Run | high | 1 |
+| `persistence_path_mutation_001` | Persistence Path Mutation | critical | 1 |
+| `anti_forensics_pressure_001` | Anti-Forensics Pressure Test | critical | 1 |
+| `dependency_swap_001` | Dependency Swap / Supply Chain Emulation | critical | 1 |
+| `full_storyline_001` | Full Synthetic Intrusion Storyline | high | 2 |
+
+The full storyline chains auth burst → remote execution artifacts → enumeration/staging → persistence-path mutation → anti-forensics → cleanup. One run, seven stages, one scorecard.
+
+---
+
+## Repo Structure
+
+```
+claudianShield/
+├── runner/          control plane + scoring + reporting
+├── behaviors/       synthetic behavior modules (one class per behavior family)
+├── collectors/      event normalization, file/process/auth collection, correlation
+├── scenarios/       JSON scenario definitions
+├── evidence/        JSONL event output (gitignored output, seeded artifacts)
+├── reports/         run scorecards (gitignored output, .gitkeep holds the folder)
+├── tests/           validation harness for collectors and behaviors
+├── utils/           shared helpers (JSONL read/write)
+├── scripts/         Linear backlog bootstrap
+├── docs/            PlantUML architecture and sequence diagrams
+└── docker/          Dockerfile.runner + docker-compose.yml
+```
+
+---
+
+## Scoring
+
+Each run scores across five dimensions:
+
+| Dimension | Weight | What it measures |
+|---|---|---|
+| Detection Coverage | 30% | Did the expected detections fire? |
+| Telemetry Completeness | 25% | Were all required event classes observed? |
+| Correlation Quality | 20% | Were cross-host and cross-stage events linked? |
+| Timeliness | 15% | Was activity surfaced before cleanup? |
+| Analyst Usefulness | 10% | Does the alert tell a coherent story? |
+
+---
+
+## Running It
+
+```powershell
+# Run a single scenario
+python -m runner.main scenarios/full_storyline.json
+
+# Docker (single host)
+cd docker
+docker compose up
+
+# Docker (multi-host with target node)
+docker compose --profile multi-host up
+```
+
+Reports land in `reports/<run-id>.json`.
+
+---
+
+## Local Setup
+
+```powershell
+# Clone
+git clone https://github.com/DadOpsMateoMaddox/clawdianshield.git
+cd clawdianshield
+
+# Python deps
+pip install -r requirements.txt
+
+# Node deps (Linear tooling only)
+cd claudianShield
+npm install
+
+# Configure secrets
+cp .env.example .env
+# Edit .env — add LINEAR_API_KEY from linear.app/settings/api
+# Add ANTHROPIC_API_KEY when Claude scenario gen is wired in (Phase 2)
+
+# Seed Linear backlog (idempotent)
+npm run bootstrap-linear
+```
+
+---
+
+## Project Management
+
+**Linear:** ClawdianShield project, team ClawCode_V-ClaudeCode  
+**Branch naming:** `cls-<issue-id>/<short-description>`  
+**Commits:** `CLS-<id>: <message>`  
+**Milestones:** MVP Baseline → Telemetry → Detections → Scenarios → Evidence → Portfolio Packaging
+
+---
+
+## Status
+
+Phase 1 in progress. Core runner, all 10 scenario definitions, and all behavior modules are built. Collectors are scaffolded. Phase 2 wires in the Claude API for automated scenario generation and adds the multi-host scheduler and correlation engine.
+
 
 ---
 

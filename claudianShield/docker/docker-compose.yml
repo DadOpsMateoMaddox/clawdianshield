@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  clawdianshield-runner:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.runner
+    container_name: clawdianshield-runner
+    volumes:
+      - ../scenarios:/app/scenarios:ro
+      - ../reports:/app/reports
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ["python", "-m", "runner.main", "scenarios/full_storyline.json"]

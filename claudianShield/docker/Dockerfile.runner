@@ -1,0 +1,13 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY runner/ ./runner/
+COPY behaviors/ ./behaviors/
+COPY collectors/ ./collectors/
+COPY scenarios/ ./scenarios/
+COPY utils/ ./utils/
+
+RUN pip install --no-cache-dir pydantic
+
+CMD ["python", "-m", "runner.main", "scenarios/full_storyline.json"]

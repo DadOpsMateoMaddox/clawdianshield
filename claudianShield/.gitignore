@@ -5,6 +5,13 @@
 
 # Dependencies
 node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# Runner output — keep folder, ignore generated reports
+reports/*.json
 
 # OS / editor noise
 .DS_Store

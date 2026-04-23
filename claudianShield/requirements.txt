@@ -1,0 +1,7 @@
+pydantic>=2.0.0
+
+# Uncomment when Claude API scenario generation is wired in (Phase 2):
+# anthropic>=0.25.0
+
+# Uncomment for terminal report formatting:
+# rich>=13.0.0
