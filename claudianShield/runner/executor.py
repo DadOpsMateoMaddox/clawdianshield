@@ -5,7 +5,7 @@ runner/executor.py
 Deterministic subprocess execution engine for ClawdianShield scenarios.
 
 Translates a scenario JSON behavior_profile into ordered docker exec commands
-against a target container (default: claudian_victim). Each behavior maps to
+against a target container (default: clawdian_victim). Each behavior maps to
 an ordered list of sh -c shell steps that produce the system artifacts — file
 ops, auth log entries, process events — that the collectors are instrumented
 to detect.
@@ -292,8 +292,8 @@ def main() -> None:
     parser.add_argument("scenario", help="Path to scenario JSON file")
     parser.add_argument(
         "--container",
-        default="claudian_victim",
-        help="Docker container name to target (default: claudian_victim)",
+        default="clawdian_victim",
+        help="Docker container name to target (default: clawdian_victim)",
     )
     parser.add_argument(
         "--reports",

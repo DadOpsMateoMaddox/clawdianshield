@@ -26,23 +26,23 @@ The project backlog was seeded programmatically via `scripts/linear-bootstrap.js
 
 Four planes:
 
-```
+```text
 Control Plane       — load scenario JSON → validate safety constraints → build behavior plan
-Execution Plane     — translate behaviors → docker exec commands → run against claudian_victim
+Execution Plane     — translate behaviors → docker exec commands → run against clawdian_victim
 Telemetry Plane     — collect, normalize, correlate events into JSONL
 Evaluation Plane    — score expected vs observed, generate JSON report with coverage gaps
 ```
 
 The execution flow:
 
-```
+```text
 scenarios/<id>.json
         │
         ▼
 runner/executor.py          ← subprocess engine (Phase 2)
   safety gate
   behavior → command map
-  docker exec claudian_victim sh -c "<cmd>"
+  docker exec clawdian_victim sh -c "<cmd>"
         │
         ▼
 reports/<run_id>_exec_log.json   ← step trace + telemetry coverage gaps
@@ -58,7 +58,7 @@ Bootstrap sequence: [`docs/sequence-bootstrap.puml`](docs/sequence-bootstrap.pum
 ## Scenario Catalog
 
 | ID | Name | Risk | Hosts |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `fim_burst_001` | FIM Burst Tamper Storm | medium | 1 |
 | `trusted_binary_blend_001` | Trusted Binary Tamper Blend | medium | 1 |
 | `sensitive_config_drift_001` | Sensitive Config Drift | medium | 1 |
@@ -76,8 +76,8 @@ The full storyline chains auth burst → remote execution artifacts → enumerat
 
 ## Repo Structure
 
-```
-claudianShield/
+```text
+clawdianShield/
 ├── runner/          executor.py — deterministic subprocess scenario engine
 ├── collectors/      event normalization, file/process/auth collection, correlation
 ├── scenarios/       JSON scenario definitions (10 scenarios + test fixtures)
@@ -97,7 +97,7 @@ claudianShield/
 Each run scores across five dimensions:
 
 | Dimension | Weight | What it measures |
-|---|---|---|
+| --- | --- | --- |
 | Detection Coverage | 30% | Did the expected detections fire? |
 | Telemetry Completeness | 25% | Were all required event classes observed? |
 | Correlation Quality | 20% | Were cross-host and cross-stage events linked? |
@@ -113,10 +113,10 @@ Each run scores across five dimensions:
 python runner/executor.py scenarios/fim_burst_tamper.json --dry-run
 
 # Live run against the victim container
-python runner/executor.py scenarios/fim_burst_tamper.json --container claudian_victim
+python runner/executor.py scenarios/fim_burst_tamper.json --container clawdian_victim
 
 # Full intrusion storyline
-python runner/executor.py scenarios/full_storyline.json --container claudian_victim
+python runner/executor.py scenarios/full_storyline.json --container clawdian_victim
 
 # Docker (spin up runner + victim)
 cd docker
@@ -166,7 +166,7 @@ All collectors emit JSONL to `evidence/` in a consistent schema:
 ```
 
 | Module | Description | Status |
-|---|---|---|
+| --- | --- | --- |
 | `collectors/fim.py` | File integrity monitoring via stat snapshots | scaffolded |
 | `collectors/proc.py` | Process creation events | scaffolded |
 | `collectors/net.py` | Network connection events | scaffolded |
@@ -202,4 +202,4 @@ Core scenario definitions (10), collector scaffolding, Docker environment, and p
 `runner/executor.py` is live: deterministic subprocess engine that translates scenario `behavior_profile` keys into `docker exec` shell commands against the victim container, with per-step execution logging and telemetry coverage gap analysis. Safety gate enforces lab-only constraints before any execution. Dry-run mode validates scenarios without Docker.
 
 **Phase 3 — Next.**  
-Wire the `claudian_victim` service into `docker-compose.yml`, activate collectors to capture artifacts produced by the executor, and build the correlation + scoring pass against live telemetry.
+Wire the `clawdian_victim` service into `docker-compose.yml`, activate collectors to capture artifacts produced by the executor, and build the correlation + scoring pass against live telemetry.
