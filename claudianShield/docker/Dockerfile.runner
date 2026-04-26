@@ -1,13 +1,30 @@
+# docker/Dockerfile.runner
+#
+# Image for running runner/executor.py inside a container. Used by
+# docker-compose; not required for direct host-side execution.
+#
+# Note: the runner needs the Docker CLI to invoke `docker exec clawdian_victim ...`
+# against the sibling victim container. We mount the host docker socket from
+# compose; the docker CLI binary is installed here.
+
 FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY runner/ ./runner/
-COPY behaviors/ ./behaviors/
-COPY collectors/ ./collectors/
-COPY scenarios/ ./scenarios/
-COPY utils/ ./utils/
+# Docker CLI for runner -> victim communication via mounted /var/run/docker.sock
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends docker.io \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir pydantic
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
-CMD ["python", "-m", "runner.main", "scenarios/full_storyline.json"]
+COPY runner/      ./runner/
+COPY collectors/  ./collectors/
+COPY scenarios/   ./scenarios/
+COPY shared/      ./shared/
+COPY utils/       ./utils/
+
+ENV PYTHONUNBUFFERED=1
+
+CMD ["python", "runner/executor.py", "scenarios/full_storyline.json", "--dry-run"]

@@ -52,10 +52,19 @@ EXECUTION_ORDER: list[str] = [
     "cleanup",
 ]
 
-# Repeated auth failure syslog command — extracted to avoid duplication.
+# Repeated auth failure log line — appended directly to /var/log/auth.log,
+# which is bind-mounted to the host so log_observer can tail it. We bypass
+# logger/syslog entirely to keep the victim container stateless.
+_AUTH_LOG_PATH = "/var/log/auth.log"
 _AUTH_FAILURE_CMD = (
-    "logger -p auth.warning 'pam_unix(sudo:auth): authentication failure; "
-    "logname= uid=1000 euid=0 tty=/dev/pts/0 ruser=svc-lab-user rhost='"
+    f"echo \"$(date -u '+%Y-%m-%dT%H:%M:%SZ') victim sudo: "
+    f"pam_unix(sudo:auth): authentication failure; logname= uid=1000 euid=0 "
+    f"tty=/dev/pts/0 ruser=svc-lab-user rhost=\" >> {_AUTH_LOG_PATH}"
+)
+_AUTH_SUCCESS_CMD = (
+    f"echo \"$(date -u '+%Y-%m-%dT%H:%M:%SZ') victim sudo: "
+    f"session opened for user svc-lab-user by svc-runner(uid=0)\" "
+    f">> {_AUTH_LOG_PATH}"
 )
 
 # Maps behavior_profile key → ordered list of (step_id, sh -c command) tuples.
@@ -86,10 +95,7 @@ BEHAVIOR_STEPS: dict[str, list[tuple[str, str]]] = {
         ("auth_failure_3", _AUTH_FAILURE_CMD),
         ("auth_failure_4", _AUTH_FAILURE_CMD),
         ("auth_failure_5", _AUTH_FAILURE_CMD),
-        (
-            "auth_success",
-            "logger -p auth.info 'session opened for user svc-lab-user by svc-runner(uid=0)'",
-        ),
+        ("auth_success", _AUTH_SUCCESS_CMD),
     ],
     "remote_execution_artifacts": [
         (
@@ -141,8 +147,12 @@ BEHAVIOR_STEPS: dict[str, list[tuple[str, str]]] = {
             "rm -f /tmp/clawdianshield/stage_archive.tar.gz",
         ),
         (
-            "rm_working_dir",
-            "rm -rf /tmp/clawdianshield",
+            "rm_working_contents",
+            # Wipe contents only — /tmp/clawdianshield is bind-mounted from
+            # the host (./victim_state) and removing the mount point itself
+            # fails with "Resource busy". Leaving the directory present also
+            # keeps subsequent runs from racing against re-create.
+            "rm -rf /tmp/clawdianshield/* /tmp/clawdianshield/.[!.]* 2>/dev/null; true",
         ),
     ],
 }
@@ -216,7 +226,7 @@ def _run_step(
     argv = ["docker", "exec", container, "sh", "-c", command]
     t_start = datetime.now(timezone.utc)
     try:
-        result = subprocess.run(argv, capture_output=True, text=True, timeout=30, shell=True)
+        result = subprocess.run(argv, capture_output=True, text=True, timeout=30)
         elapsed = (datetime.now(timezone.utc) - t_start).total_seconds()
         return {
             "behavior": behavior,

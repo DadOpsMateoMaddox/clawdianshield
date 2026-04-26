@@ -13,6 +13,11 @@ __pycache__/
 # Runner output — keep folder, ignore generated reports
 reports/*.json
 
+# Telemetry evidence + bind-mount state (regenerated per run)
+evidence/*.jsonl
+victim_state/
+victim_logs/
+
 # OS / editor noise
 .DS_Store
 Thumbs.db

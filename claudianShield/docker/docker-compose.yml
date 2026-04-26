@@ -1,14 +1,44 @@
-version: "3.9"
-
 services:
+  clawdian_victim:
+    build:
+      context: ..
+      dockerfile: victim/Dockerfile.victim
+    container_name: clawdian_victim
+    # Bind mounts expose the victim's mutable state to the host so the
+    # collectors (file_observer, log_observer) running on the host can watch
+    # them without needing privileged access into the container.
+    volumes:
+      - ../victim_state:/tmp/clawdianshield
+      - ../victim_logs:/var/log
+    # Pure target: no inbound network exposure, no outbound to internet.
+    network_mode: none
+    # Drop capabilities the scenarios should not need. Add back per-scenario
+    # in a future override file if a scenario legitimately needs them.
+    cap_drop:
+      - ALL
+    read_only: false
+    restart: "no"
+
   clawdianshield-runner:
     build:
       context: ..
       dockerfile: docker/Dockerfile.runner
     container_name: clawdianshield-runner
+    depends_on:
+      - clawdian_victim
     volumes:
       - ../scenarios:/app/scenarios:ro
       - ../reports:/app/reports
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - PYTHONUNBUFFERED=1
-    command: ["python", "-m", "runner.main", "scenarios/full_storyline.json"]
+    # Default: dry-run the storyline. Override via:
+    #   docker compose run --rm clawdianshield-runner \
+    #     python runner/executor.py scenarios/<id>.json --container clawdian_victim
+    command:
+      [
+        "python",
+        "runner/executor.py",
+        "scenarios/full_storyline.json",
+        "--dry-run",
+      ]

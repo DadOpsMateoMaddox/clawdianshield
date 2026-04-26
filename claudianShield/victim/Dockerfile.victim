@@ -1,0 +1,27 @@
+# victim/Dockerfile.victim
+#
+# clawdian_victim — minimal Linux target image for ClawdianShield scenarios.
+#
+# Design notes:
+#   - Alpine for size and busybox coverage of all utilities the executor needs
+#     (mkdir, mv, rm, chmod, find, tar, truncate, sh, echo, printf).
+#   - tini as PID 1 so docker stop sends a clean SIGTERM that propagates.
+#   - No syslog daemon. Auth log entries are written directly to
+#     /var/log/auth.log by the executor (see runner/executor.py). This keeps
+#     the container stateless, removes a moving piece, and gives the host-side
+#     log_observer a deterministic file to tail via the bind mount.
+#   - Container sleeps forever; the executor drives all activity via
+#     `docker exec`. No long-running services.
+
+FROM alpine:3.20
+
+RUN apk add --no-cache tini coreutils findutils tar
+
+# Pre-create directories the executor + observers expect to find populated.
+# /tmp/clawdianshield is bind-mounted from host ./victim_state
+# /var/log is bind-mounted from host ./victim_logs
+RUN mkdir -p /tmp/clawdianshield /var/log \
+    && touch /var/log/auth.log
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["sh", "-c", "tail -f /dev/null"]

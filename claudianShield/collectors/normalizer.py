@@ -1,14 +1,20 @@
+"""
+collectors/normalizer.py
+
+Boundary helper: convert a raw dict (from a syslog parser, watchdog event,
+or replayed JSONL line) into a validated NormalizedEvent.
+
+Defaults are conservative — missing fields don't raise, but downstream
+consumers can still pydantic-validate the result.
+"""
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from runner.models import NormalizedEvent
+
+from shared.models import NormalizedEvent
 
 
 def normalize(raw: dict) -> NormalizedEvent:
-    """
-    Convert a raw dict (e.g. from a syslog parser or OS hook) into a NormalizedEvent.
-    Fields not present in raw are defaulted safely.
-    """
     return NormalizedEvent(
         run_id=raw.get("run_id", "unknown"),
         scenario_id=raw.get("scenario_id", "unknown"),
@@ -17,4 +23,5 @@ def normalize(raw: dict) -> NormalizedEvent:
         timestamp=raw.get("timestamp", datetime.now(timezone.utc).isoformat()),
         severity=raw.get("severity", "info"),
         details=raw.get("details", {}),
+        collector=raw.get("collector", "unknown"),
     )

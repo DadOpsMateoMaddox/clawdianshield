@@ -1,6 +1,4 @@
-from __future__ import annotations
-
-from collectors.event_bus import EventBus
 from collectors.normalizer import normalize
+from shared.models import NormalizedEvent
 
-__all__ = ["EventBus", "normalize"]
+__all__ = ["NormalizedEvent", "normalize"]
