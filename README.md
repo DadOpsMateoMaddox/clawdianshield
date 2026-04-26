@@ -1,0 +1,232 @@
+# ClawdianShield
+
+Detection engineering lab. Builds a full adversary emulation pipeline — telemetry collection, synthetic attack scenarios, detection scoring — as a working portfolio project, not a slide deck.
+
+---
+
+## The Point
+
+Most security portfolios are certs and writeups. This is different. The goal here is to build something that actually runs: a black-box adversary emulation system that induces defender-relevant artifacts on a controlled lab, measures whether your detection stack caught them, and scores the gaps.
+
+The scenarios don't use real exploit or credential attack logic (but can be programmed to do so in a controlled, air-gapped environment). This version is designed to produce the *signals* that defenders care about — auth anomalies, file tampering chains, cross-host traces, staging activity, persistence-path writes, anti-forensics signals — without depending on target internals or shipping anything operationally abusive. The point is detection coverage and telemetry quality, not malware cosplay.
+
+---
+
+## How It's Built
+
+The dev workflow is called **RE Claw Code** — reverse engineering discipline applied to software development. Every component maps to a Linear issue. Every branch names the issue. Every commit references it. Nothing gets built without a tracked reason.
+
+**Claude (Anthropic)** acts as AI pair programmer via the Claude Code CLI for implementation, and as the red-team scenario generator via the API (wired in Phase 2 — `anthropic` SDK is now an active dependency). **GitHub Copilot** handles inline code review. Both are assistants. The engineering decisions are deliberate.
+
+The project backlog was seeded programmatically via `scripts/linear-bootstrap.js`. The GitHub ↔ Linear sync is wired via `.github/workflows/linear-sync.yml` — PR merges close Linear issues automatically.
+
+---
+
+## Architecture
+
+Four planes:
+
+```text
+Control Plane       — load scenario JSON → validate safety constraints → build behavior plan
+Execution Plane     — translate behaviors → docker exec commands → run against clawdian_victim
+Telemetry Plane     — host-side observers stream JSONL evidence from bind-mounted victim state
+Evaluation Plane    — score expected vs observed, generate JSON report with coverage gaps
+```
+
+The execution and observation flow:
+
+```text
+scenarios/<id>.json
+        │
+        ▼
+runner/executor.py                    ← subprocess engine (Phase 2)
+  safety gate
+  behavior → command map
+  docker exec clawdian_victim sh -c "<cmd>"
+        │                                          ┌─────────────────────────────┐
+        │  artifacts                               │  collectors/file_observer   │
+        ▼  (real)                                  │  collectors/log_observer    │
+  clawdian_victim:/tmp/clawdianshield  ──bind──►   │  (host-side, watchdog +     │
+  clawdian_victim:/var/log              mount      │   tail; emit JSONL via      │
+                                                   │   shared.models.NormalizedEvent)
+                                                   └─────────────┬───────────────┘
+        │                                                        ▼
+        ▼                                              evidence/file_events.jsonl
+reports/<run_id>_exec_log.json                         evidence/auth_events.jsonl
+```
+
+Scenarios are JSON files describing what behaviors to run, what telemetry to expect, and what the success criteria are. The executor is deterministic and replayable. The observers run on the host (not inside the victim, not as a sidecar) and watch the bind-mounted victim state directories — Path A authentic observation: real artifacts, real reads, no in-process telemetry fabrication.
+
+Full diagram: [`docs/architecture.puml`](docs/architecture.puml)  
+Bootstrap sequence: [`docs/sequence-bootstrap.puml`](docs/sequence-bootstrap.puml)
+
+---
+
+## Scenario Catalog
+
+| ID | Name | Risk | Hosts |
+| --- | --- | --- | --- |
+| `fim_burst_001` | FIM Burst Tamper Storm | medium | 1 |
+| `trusted_binary_blend_001` | Trusted Binary Tamper Blend | medium | 1 |
+| `sensitive_config_drift_001` | Sensitive Config Drift | medium | 1 |
+| `auth_abuse_001` | Synthetic Multi-Host Auth Abuse | high | 2 |
+| `remote_exec_artifacts_001` | Remote Execution Artifact Chain | high | 2 |
+| `collection_staging_001` | Collection and Staging Run | high | 1 |
+| `persistence_path_mutation_001` | Persistence Path Mutation | critical | 1 |
+| `anti_forensics_pressure_001` | Anti-Forensics Pressure Test | critical | 1 |
+| `dependency_swap_001` | Dependency Swap / Supply Chain Emulation | critical | 1 |
+| `full_storyline_001` | Full Synthetic Intrusion Storyline | high | 2 |
+
+The full storyline chains auth burst → remote execution artifacts → enumeration/staging → persistence-path mutation → anti-forensics → cleanup. One run, seven stages, one scorecard.
+
+---
+
+## Repo Structure
+
+```text
+clawdianShield/
+├── runner/          executor.py — deterministic subprocess scenario engine
+├── collectors/      file_observer, log_observer, run (host-side streaming observers);
+│                    correlation, normalizer, file_events (helpers)
+├── shared/          models.py — Pydantic NormalizedEvent / RunContext schema
+├── victim/          Dockerfile.victim — minimal alpine target image
+├── scenarios/       JSON scenario definitions (10 scenarios + test fixtures)
+├── victim_state/    bind-mounted to /tmp/clawdianshield in victim (gitignored)
+├── victim_logs/     bind-mounted to /var/log in victim (gitignored)
+├── evidence/        JSONL event output from observers (gitignored)
+├── reports/         executor logs and run scorecards (gitignored, .gitkeep)
+├── tests/           validation harness
+├── utils/           shared helpers (JSONL read/write)
+├── scripts/         Linear backlog bootstrap
+├── docs/            PlantUML architecture and sequence diagrams
+└── docker/          Dockerfile.runner + docker-compose.yml
+```
+
+---
+
+## Scoring
+
+Each run scores across five dimensions:
+
+| Dimension | Weight | What it measures |
+| --- | --- | --- |
+| Detection Coverage | 30% | Did the expected detections fire? |
+| Telemetry Completeness | 25% | Were all required event classes observed? |
+| Correlation Quality | 20% | Were cross-host and cross-stage events linked? |
+| Timeliness | 15% | Was activity surfaced before cleanup? |
+| Analyst Usefulness | 10% | Does the alert tell a coherent story? |
+
+---
+
+## Running It
+
+```bash
+# Dry-run (no Docker required — validates parsing, safety gate, and plan)
+python runner/executor.py scenarios/fim_burst_tamper.json --dry-run
+
+# Bring up the victim container
+docker compose -f docker/docker-compose.yml up -d clawdian_victim
+
+# Terminal 1: start the host-side observers (file + auth log streaming)
+python -m collectors.run \
+  --run-id verify-001 \
+  --scenario-id fim_burst_001 \
+  --host workstation-1
+
+# Terminal 2: fire a scenario at the live victim
+python runner/executor.py scenarios/fim_burst_tamper.json --container clawdian_victim
+```
+
+Two output streams land per run:
+
+- `reports/<run-id>_exec_log.json` — executor's per-step trace, telemetry coverage, and gap analysis.
+- `evidence/{file_events,auth_events}.jsonl` — host-side observers' streamed `NormalizedEvent` records (one JSON object per line) describing every file-system change in the bind-mounted victim state and every classified line in the bind-mounted auth log.
+
+---
+
+## Local Setup
+
+```bash
+# 1. Clone
+git clone https://github.com/dadopsmateomaddox/clawdianShield.git
+cd clawdianShield
+
+# 2. Python deps
+pip install -r requirements.txt
+
+# 3. Node deps (Linear tooling only)
+npm install
+
+# 4. Configure secrets — never commit real values
+cp .env.example .env
+# Edit .env — add LINEAR_API_KEY and ANTHROPIC_API_KEY
+
+# 5. Seed Linear backlog (idempotent — skips existing issues)
+npm run bootstrap-linear
+```
+
+**Environment:** Docker Desktop 4.70+ with WSL2 backend. PowerShell 7+ recommended.
+
+---
+
+## Telemetry Schema
+
+All observers emit JSONL to `evidence/` using the `NormalizedEvent` schema from `shared/models.py` (Pydantic v2):
+
+```json
+{
+  "run_id": "exec-20260426-085200-d32503",
+  "scenario_id": "fim_burst_001",
+  "host": "workstation-1",
+  "event_type": "file_create",
+  "timestamp": "2026-04-26T08:52:00.587542+00:00",
+  "severity": "medium",
+  "details": {"path": "victim_state/sensitive.conf", "sha256": "36d6f..."},
+  "collector": "file_observer"
+}
+```
+
+| Module | Description | Status |
+| --- | --- | --- |
+| `collectors/file_observer.py` | Host-side watchdog PollingObserver on bind-mounted victim state dir | live |
+| `collectors/log_observer.py` | Host-side log tailer on bind-mounted `/var/log/auth.log`; regex-classifies pam_unix events | live |
+| `collectors/run.py` | Convenience launcher: start both observers, share stop event, write to `evidence/` | live |
+| `collectors/correlation.py` | Cross-host adjacency from `details.source_host` | utility |
+| `collectors/normalizer.py` | Dict → NormalizedEvent boundary helper | utility |
+| `collectors/file_events.py` | sha256 snapshot/diff helpers used by file_observer | utility |
+
+---
+
+## Project Management
+
+**Linear:** ClawdianShield project, team ClawCode_V-ClaudeCode  
+**Branch naming:** `cls-<issue-id>/<short-description>`  
+**Commits:** `CLS-<id>: <message>`  
+**Milestones:** MVP Baseline → Telemetry → Detections → Scenarios → Evidence → Portfolio Packaging
+
+GitHub PRs are linked to Linear issues automatically via `.github/workflows/linear-sync.yml`. When a PR is merged from a branch named `cls-<id>/...`, the corresponding Linear issue is closed.
+
+---
+
+## Security Notes
+
+- `.env` is gitignored and cursorignored — never committed
+- `.env.example` contains only placeholders — safe to commit
+- All secrets are loaded via `dotenv` at runtime
+- Rotate any key that has been visible in a terminal, chat, or log
+
+---
+
+## Status
+
+**Phase 1 — Complete.**  
+Core scenario definitions (10), Docker environment, and project tooling.
+
+**Phase 2 — Scenario Engine complete.**  
+`runner/executor.py`: deterministic subprocess engine, behavior → `docker exec` shell command map, per-step execution log, telemetry coverage gap analysis. Safety gate enforces lab-only constraints before any execution. Dry-run mode validates scenarios without Docker.
+
+**Phase 3a — Telemetry Observer live.**  
+Path A authentic-observation telemetry plane: `clawdian_victim` (alpine + tini, no syslog daemon) wired into `docker/docker-compose.yml` with `/tmp/clawdianshield` and `/var/log` bind-mounted to host directories. Host-side observers (`collectors/file_observer.py` via watchdog `PollingObserver`, `collectors/log_observer.py` via tail-and-classify) stream `NormalizedEvent` JSONL into `evidence/`. End-to-end verified: `fim_burst_tamper.json` produced 6 file events; `synthetic_auth_abuse.json` produced 6 auth events (5 failures, 1 success with extracted account name).
+
+**Phase 3b — Scenario expansion.**  
+Three host-fit threat-vector scenarios on deck (no architectural change required): `container_escape_signals_001` (capability probes, mount enumeration, runC-style symlink chains), `credential_access_signals_001` (synthetic SSH key drops, sudoers tampering), `cloud_metadata_abuse_001` (synthetic IMDSv2 SSRF chain, IAM token staging). Network/application-layer attacks (SQLi, DoS, MitM) are explicitly deferred to a future hybrid-mode network plane.
