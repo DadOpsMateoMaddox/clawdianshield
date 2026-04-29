@@ -422,5 +422,8 @@ def main() -> None:
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
 
 
+app = build_app(Path("evidence"), Path("reports"))
+
+
 if __name__ == "__main__":
     main()
