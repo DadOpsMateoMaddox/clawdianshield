@@ -1,6 +1,12 @@
 # ClawdianShield
 
-**A detection engineering platform and adversary emulation pipeline.** This is a working, deterministic, zero-outbound digital crime scene designed to produce the exact telemetry your SOC is likely missing right now.
+> Your company just deployed an AI-native SOC platform. It cost six figures. It promises autonomous detection, triage, and response. But here is the question nobody is asking: **how do you know it actually works?**
+>
+> You can run vendor-supplied test scenarios, but those were written by the same team that built the model. You can review the dashboards, but dashboards only show what the system *chose* to surface. For all practical purposes, your organization now trusts its survival to a black box that grades its own homework.
+>
+> **ClawdianShield exists to solve that problem.** It generates deterministic, real-world adversary telemetry and measures whether your detection stack (AI-native or otherwise) actually caught it. No vendor bias. No synthetic hallucination. Just ground-truth signal and a brutal coverage score.
+
+**A detection engineering platform and adversary emulation pipeline.** A working, deterministic, zero-outbound digital crime scene designed to produce the exact telemetry your SOC is likely missing right now.
 
 > [!IMPORTANT]
 > **Status: Phase 3a (Telemetry Observer) is LIVE. Phase 3b (CVE Intelligence) is NEXT.**
