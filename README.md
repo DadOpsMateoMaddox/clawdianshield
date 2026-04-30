@@ -3,8 +3,8 @@
 **A detection engineering lab and adversary emulation pipeline.** This is a working, deterministic, zero-outbound digital crime scene designed to produce the exact telemetry your SOC is likely missing right now.
 
 > [!IMPORTANT]
-> **Status: Phase 3a (Telemetry Observer) is LIVE.**
-> This project demonstrates real-world telemetry collection, not just slide-deck theory. End-to-end verified scenarios actively stream signals from host-side observers.
+> **Status: Phase 3a (Telemetry Observer) is LIVE. Phase 3b (CVE Intelligence) is NEXT.**
+> This project demonstrates real-world telemetry collection, not just slide-deck theory. End-to-end verified scenarios actively stream signals from host-side observers. Next up: real-time CVE feeds mapped to observed MITRE techniques.
 
 **Proof of Execution (Authentic Host Telemetry)**  
 When `fim_burst_tamper.json` fires, the execution plane induces state changes, and the host-side observer instantly streams the evidence:
@@ -24,6 +24,10 @@ When `fim_burst_tamper.json` fires, the execution plane induces state changes, a
   "collector": "file_observer"
 }
 ```
+
+**Executive Overview (Live Dashboard)**
+
+![ClawdianShield Executive Overview - 138 ingested events, severity timeseries, event type distribution, severity mix, collector feeds, top mutated paths, auth accounts, and active scenario profile with telemetry coverage assessment](claudianShield/docs/screenshot-overview.png)
 
 ---
 
@@ -97,6 +101,8 @@ Bootstrap sequence: [`claudianShield/docs/sequence-bootstrap.puml`](claudianShie
 
 The full storyline chains auth burst -> remote execution artifacts -> enumeration/staging -> persistence-path mutation -> anti-forensics -> cleanup. One run, seven stages, one scorecard.
 
+![Scenario Runs Console - Full Synthetic Intrusion Storyline execution showing AI-generated incident brief with executive summary, attack chain narrative, telemetry assessment, recommended detections, risk rating, and all 23 execution steps with OK status](claudianShield/docs/screenshot-scenario-runs.png)
+
 ---
 
 ## **The Scorecard**
@@ -108,6 +114,8 @@ Every run is graded across five dimensions. If your stack is blind, this will te
 *   **Correlation Quality (20%)**: Were cross-host and cross-stage events linked?
 *   **Timeliness (15%)**: Was activity surfaced before the attacker cleaned up?
 *   **Analyst Usefulness (10%)**: Does the alert tell a coherent story?
+
+![ATT&CK Map - MITRE technique coverage grid organized by behavior category (auth_anomalies, remote_execution_artifacts, file_tamper, staging, persistence_path_changes, anti_forensics, cleanup) with 13 mapped techniques including T1110, T1078, T1059, T1105, T1565, T1485, T1074, T1560, T1053, T1037, T1070, T1070.004](claudianShield/docs/screenshot-attack-map.png)
 
 ---
 
@@ -178,7 +186,7 @@ A Kibana-styled analyst console reads the same JSONL evidence and exec_log
 reports, surfaces severity timeseries, MITRE ATT&CK technique coverage, top
 mutated paths, scenario step traces, and a live WebSocket-backed event stream.
 
-![ClawdianShield SOC Console - Overview showing 138 ingested events, severity timeseries, event type distribution, collector feeds, and top mutated paths](claudianShield/docs/dashboard-screenshot.png)
+![ClawdianShield Live Stream - Real-time WebSocket-backed event feed showing 138 events across server-1 and workstation-1 with severity badges, file observer telemetry, SHA256 hashes, and per-event file paths from bind-mounted victim state](claudianShield/docs/screenshot-live-stream.png)
 
 ```bash
 # 1. install dashboard deps (FastAPI + uvicorn already in requirements.txt)
@@ -293,8 +301,8 @@ Core scenario definitions (10), Docker environment, and project tooling.
 **Phase 3a - Telemetry Observer live.**  
 Path A authentic-observation telemetry plane: `clawdian_victim` (alpine + tini, no syslog daemon) wired into `docker/docker-compose.yml` with `/tmp/clawdianshield` and `/var/log` bind-mounted to host directories. Host-side observers (`collectors/file_observer.py` via watchdog `PollingObserver`, `collectors/log_observer.py` via tail-and-classify) stream `NormalizedEvent` JSONL into `evidence/`. End-to-end verified: `fim_burst_tamper.json` produced 6 file events; `synthetic_auth_abuse.json` produced 6 auth events (5 failures, 1 success with extracted account name).
 
-**Phase 3b - Scenario expansion.**  
-Three host-fit threat-vector scenarios on deck (no architectural change required): `container_escape_signals_001` (capability probes, mount enumeration, runC-style symlink chains), `credential_access_signals_001` (synthetic SSH key drops, sudoers tampering), `cloud_metadata_abuse_001` (synthetic IMDSv2 SSRF chain, IAM token staging). Network/application-layer attacks (SQLi, DoS, MitM) are explicitly deferred to a future hybrid-mode network plane.
+**Phase 3b - CVE Intelligence + Scenario Expansion.**  
+First priority: **Real-time CVE intelligence mapping.** Integrate live CVE feeds (NVD / CISA KEV) to automatically correlate observed MITRE ATT&CK techniques from scenario runs against actively exploited vulnerabilities. The ATT&CK Map panel will surface which of your telemetry gaps overlap with CVEs currently being weaponized in the wild, turning coverage scores into threat-prioritized risk assessments. Following CVE integration: three host-fit threat-vector scenarios on deck (no architectural change required): `container_escape_signals_001` (capability probes, mount enumeration, runC-style symlink chains), `credential_access_signals_001` (synthetic SSH key drops, sudoers tampering), `cloud_metadata_abuse_001` (synthetic IMDSv2 SSRF chain, IAM token staging). Network/application-layer attacks (SQLi, DoS, MitM) are explicitly deferred to a future hybrid-mode network plane.
 
 ---
 
