@@ -1,10 +1,10 @@
 # ClawdianShield
 
-**A detection engineering lab and adversary emulation pipeline.** This is a working, deterministic, zero-outbound digital crime scene designed to produce the exact telemetry your SOC is likely missing right now.
+**A detection engineering platform and adversary emulation pipeline.** This is a working, deterministic, zero-outbound digital crime scene designed to produce the exact telemetry your SOC is likely missing right now.
 
 > [!IMPORTANT]
 > **Status: Phase 3a (Telemetry Observer) is LIVE. Phase 3b (CVE Intelligence) is NEXT.**
-> This project demonstrates real-world telemetry collection, not just slide-deck theory. End-to-end verified scenarios actively stream signals from host-side observers. Next up: real-time CVE feeds mapped to observed MITRE techniques.
+> This platform demonstrates real-world telemetry collection, not just slide-deck theory. End-to-end verified scenarios actively stream signals from host-side observers. Next up: real-time CVE feeds mapped to observed MITRE techniques.
 
 **Proof of Execution (Authentic Host Telemetry)**  
 When `fim_burst_tamper.json` fires, the execution plane induces state changes, and the host-side observer instantly streams the evidence:
@@ -38,7 +38,7 @@ Most security portfolios are just a stack of certs and CTF writeups. ClawdianShi
 Small startups cannot afford a $50,000 red team engagement just to see if their open-source logging works. Enterprise SOCs have millions invested in SIEMs, but often have no idea if their detection logic actually fires until a breach happens.
 
 This system acts as a **black-box adversary emulation engine**. It:
-1. Induces defender-relevant artifacts in a controlled lab.
+1. Induces defender-relevant artifacts in a controlled environment.
 2. Measures whether your detection stack caught them.
 3. Brutally scores your coverage gaps.
 
@@ -293,7 +293,7 @@ GitHub PRs are linked to Linear issues automatically via `.github/workflows/line
 ## **Detailed Status**
 
 **Phase 1 - Complete.**  
-Core scenario definitions (10), Docker environment, and project tooling.
+Core scenario definitions (10), Docker environment, and platform tooling.
 
 **Phase 2 - Scenario Engine complete.**  
 `runner/executor.py`: deterministic subprocess engine, behavior -> `docker exec` shell command map, per-step execution log, telemetry coverage gap analysis. Safety gate enforces lab-only constraints before any execution. Dry-run mode validates scenarios without Docker.
