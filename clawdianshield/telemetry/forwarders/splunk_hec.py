@@ -20,7 +20,7 @@ from datetime import datetime, timezone
 
 import requests
 
-from shared.models import NormalizedEvent
+from unification.models import NormalizedEvent
 
 logger = logging.getLogger(__name__)
 

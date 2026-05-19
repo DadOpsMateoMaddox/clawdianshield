@@ -7,7 +7,7 @@ run_id, scenario_id, and host, so the post-run scoring pass can correlate
 them as one campaign.
 
 Usage:
-    python -m collectors.run \\
+    python -m sensors.run \\
         --run-id exec-20260426-040000-abc123 \\
         --scenario-id fim_burst_001 \\
         --host workstation-1 \\
@@ -24,7 +24,7 @@ import signal
 import threading
 from pathlib import Path
 
-from collectors import file_observer, log_observer
+from sensors import file_observer, log_observer
 
 
 def main() -> None:

@@ -8,15 +8,17 @@
 - The repo has 70+ directories. Do not navigate by intuition. Use explicit absolute paths.
 - Shell: Git Bash (Unix syntax). Use forward slashes. `/d/MasterVault/SUDO/` not `D:\`.
 
-Key paths:
+Key paths (the four pipeline packages spell **S-U-D-O** — internal architecture label, not a literal `sudo`):
 ```
 clawdianshield/                  ← main project
-clawdianshield/dashboard/        ← FastAPI server + vanilla JS frontend
-clawdianshield/dashboard/static/ ← dashboard.js, index.html, style.css
-clawdianshield/intelligence/     ← gemini_client.py (AI brief generator)
-clawdianshield/runner/           ← executor.py (scenario engine)
-clawdianshield/scenarios/        ← JSON scenario files
-clawdianshield/evidence/         ← JSONL event streams (collectors write here)
+clawdianshield/sensors/          ← (S) telemetry collection + observer inputs (file_observer, log_observer, normalizer, correlation)
+clawdianshield/unification/      ← (U) schema normalization / event shaping (models.py: NormalizedEvent, RunContext)
+clawdianshield/detection/        ← (D) scoring + ATT&CK mapping (scorer.py)
+clawdianshield/orchestration/    ← (O) AI briefs + report routing (gemini_client.py, gemini_bridge.py, confluence_publisher.py)
+clawdianshield/engine/           ← adversary actor plane — NOT part of SUDO (executor.py, scenarios/, docker/, victim/)
+clawdianshield/dashboard/        ← FastAPI server + vanilla JS frontend (server.py + static/)
+clawdianshield/telemetry/        ← Phase 3 Splunk/Elastic forwarders (scaffold, not wired)
+clawdianshield/evidence/         ← JSONL event streams (sensors write here)
 clawdianshield/reports/          ← exec_log.json + brief.json per run
 clawdianshield/.env              ← GEMINI_API_KEY lives here (never commit)
 ```
@@ -36,11 +38,11 @@ No venv — system Python 3.14.3 at `/c/Users/MyPC/AppData/Local/Microsoft/Windo
 
 ## Architecture (Actor → Observer → Intelligence)
 ```
-Scenarios (JSON)
-    ↓ executor.py (docker exec into clawdian_victim)
+engine/scenarios/*.json
+    ↓ engine/executor.py (docker exec into clawdian_victim)
 Docker victim container (clawdian_victim)
     ↓ bind-mounts → victim_state/ + victim_logs/
-Host collectors (file_observer, log_observer)
+Host sensors (file_observer, log_observer)
     ↓ JSONL → evidence/
 FastAPI dashboard (server.py)
     ↓ WebSocket + REST
@@ -70,7 +72,7 @@ Vanilla JS — no React, no bundler. `dashboard.js` + `index.html` + `style.css`
 - Do NOT introduce a bundler or framework without explicit instruction.
 
 ## Key Behaviors / Standing Rules
-- The `intelligence.gemini_client` import in `server.py` tries `from clawdianshield.intelligence.gemini_client` first (git root CWD), falls back to `from intelligence.gemini_client` (run from inside `clawdianshield/`).
+- The `orchestration.gemini_client` import in `server.py` tries `from clawdianshield.orchestration.gemini_client` first (git root CWD), falls back to `from orchestration.gemini_client` (run from inside `clawdianshield/`).
 - `clawdian_victim` Docker container: restart with `docker start clawdian_victim`. Network mode is `none`.
 - Scenario safety constraints must pass before executor runs. `dependency_swap` and `real_exploit_custom` are intentionally skipped in suite runs.
 - Evidence JSONL is append-only. Collectors use polling (not inotify) for Windows host volume compatibility.

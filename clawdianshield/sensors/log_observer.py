@@ -11,7 +11,7 @@ Anything else falls through as auth_unknown so it's still in the evidence
 stream and visible to scoring.
 
 Usage:
-    python -m collectors.log_observer \\
+    python -m sensors.log_observer \\
         --watch ./victim_logs/auth.log \\
         --output evidence/auth_events.jsonl \\
         --run-id exec-20260426-040000-abc123 \\
@@ -28,7 +28,7 @@ import time
 from pathlib import Path
 from typing import Optional
 
-from shared.models import NormalizedEvent
+from unification.models import NormalizedEvent
 from utils.jsonl import write as jsonl_write
 
 

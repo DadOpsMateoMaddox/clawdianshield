@@ -13,7 +13,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List, Tuple
 
-from shared.models import NormalizedEvent
+from unification.models import NormalizedEvent
 
 
 def build_host_graph(events: List[NormalizedEvent]) -> Dict[str, List[str]]:

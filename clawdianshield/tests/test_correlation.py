@@ -2,8 +2,8 @@
 tests/test_correlation.py — Unit tests for correlate_auth_and_file.
 """
 import pytest
-from collectors.correlation import correlate_auth_and_file
-from shared.models import NormalizedEvent
+from sensors.correlation import correlate_auth_and_file
+from unification.models import NormalizedEvent
 
 
 def _evt(event_type: str, host: str, timestamp: str) -> NormalizedEvent:

@@ -7,8 +7,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SCENARIOS_DIR="$REPO_ROOT/scenarios"
-RUNNER="$REPO_ROOT/runner/executor.py"
+SCENARIOS_DIR="$REPO_ROOT/engine/scenarios"
+RUNNER="$REPO_ROOT/engine/executor.py"
 VENV="$HOME/clawdian-venv"
 DRY_RUN="${1:-}"
 

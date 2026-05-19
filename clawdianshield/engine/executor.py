@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-runner/executor.py
+engine/executor.py
 
 Deterministic subprocess execution engine for ClawdianShield scenarios.
 
@@ -14,10 +14,10 @@ Writes a structured execution log to reports/<run_id>_exec_log.json tracking
 every step run versus every telemetry class the scenario expected.
 
 Usage:
-    python runner/executor.py scenarios/fim_burst_tamper.json
-    python runner/executor.py scenarios/fim_burst_tamper.json --container my_victim
-    python runner/executor.py scenarios/fim_burst_tamper.json --dry-run
-    python runner/executor.py scenarios/fim_burst_tamper.json --reports /custom/path
+    python engine/executor.py engine/scenarios/fim_burst_tamper.json
+    python engine/executor.py engine/scenarios/fim_burst_tamper.json --container my_victim
+    python engine/executor.py engine/scenarios/fim_burst_tamper.json --dry-run
+    python engine/executor.py engine/scenarios/fim_burst_tamper.json --reports /custom/path
 
 Exit codes:
     0  all steps succeeded (or dry-run)

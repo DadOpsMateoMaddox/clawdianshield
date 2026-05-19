@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 fim.py - File Integrity Monitor (Passive)
-ClaudianShield Phase 1: Real-time Telemetry
+ClawdianShield Phase 1: Real-time Telemetry
 
 Polls os.stat() on a target honey-token file to detect access/modification.
 Zero external dependencies. Local-only, no network calls.
@@ -19,7 +19,7 @@ import json
 from datetime import datetime, timezone
 
 # ---------------------------------------------------------------------------
-# Defaults (relative to claudianshield project root)
+# Defaults (relative to clawdianshield project root)
 # ---------------------------------------------------------------------------
 DEFAULT_TARGET = "victim/developer-workstation/.env"
 DEFAULT_OUTPUT = "output/evidence/fim_alerts.log"
@@ -112,7 +112,7 @@ def monitor(target, output, interval):
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="ClaudianShield FIM - Passive File Integrity Monitor"
+        description="ClawdianShield FIM - Passive File Integrity Monitor"
     )
     parser.add_argument(
         "--target",

@@ -135,7 +135,7 @@ The Kill Chain visualization renders three phases — **IN** (Initial Foothold),
 
 ```bash
 # Start the console
-python -m claudianShield.dashboard.server --host 0.0.0.0 --port 8088
+python -m dashboard.server --host 0.0.0.0 --port 8088
 # → http://localhost:8088
 ```
 
@@ -176,24 +176,24 @@ GET /api/brief/<run_id>?model=gemini-2.5-flash
 
 ```bash
 # 1. Spin up the victim container
-docker compose -f claudianShield/docker/docker-compose.yml up -d clawdian_victim
+docker compose -f engine/docker/docker-compose.yml up -d clawdian_victim
 
 # 2. Start host-side observers (Terminal 1)
-python -m claudianShield.collectors.run \
+python -m sensors.run \
   --run-id verify-001 \
   --scenario-id fim_burst_001 \
   --host workstation-1
 
 # 3. Fire the scenario (Terminal 2)
-python claudianShield/runner/executor.py \
-  claudianShield/scenarios/fim_burst_tamper.json \
+python engine/executor.py \
+  engine/scenarios/fim_burst_tamper.json \
   --container clawdian_victim
 
 # 4. Launch the dashboard (Terminal 3)
-python -m claudianShield.dashboard.server --host 0.0.0.0 --port 8088
+python -m dashboard.server --host 0.0.0.0 --port 8088
 
 # Dry-run any scenario without Docker (validates parsing + safety gate)
-python claudianShield/runner/executor.py scenarios/fim_burst_tamper.json --dry-run
+python engine/executor.py engine/scenarios/fim_burst_tamper.json --dry-run
 ```
 
 Two output streams land per run:
@@ -210,7 +210,7 @@ git clone https://github.com/dadopsmateomaddox/clawdianshield.git
 cd clawdianshield
 
 # 2. Python deps
-pip install -r claudianShield/requirements.txt
+pip install -r clawdianshield/requirements.txt
 
 # 3. Node deps (Linear tooling only — skip if you don't care about issue tracking)
 npm install

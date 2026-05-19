@@ -11,7 +11,7 @@ Windows-host bind mount is unreliable, and polling works uniformly across
 Linux, macOS, and Windows host filesystems.
 
 Usage:
-    python -m collectors.file_observer \\
+    python -m sensors.file_observer \\
         --watch ./victim_state \\
         --output evidence/file_events.jsonl \\
         --run-id exec-20260426-040000-abc123 \\
@@ -33,7 +33,7 @@ from watchdog.events import (
 )
 from watchdog.observers.polling import PollingObserver
 
-from shared.models import NormalizedEvent
+from unification.models import NormalizedEvent
 from utils.jsonl import write as jsonl_write
 
 # ---------------------------------------------------------------------------

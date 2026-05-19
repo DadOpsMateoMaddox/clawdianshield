@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from shared.models import NormalizedEvent
+from unification.models import NormalizedEvent
 
 
 def normalize(raw: dict) -> NormalizedEvent:

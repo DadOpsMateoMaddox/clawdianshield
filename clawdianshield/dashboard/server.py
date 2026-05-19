@@ -377,12 +377,12 @@ def build_app(evidence_dir: Path, reports_dir: Path) -> FastAPI:
 
         try:
             try:
-                from clawdianshield.intelligence.gemini_client import (
+                from clawdianshield.orchestration.gemini_client import (
                     GeminiNotConfigured,
                     generate_brief as _gen,
                 )
             except ImportError:
-                from intelligence.gemini_client import (
+                from orchestration.gemini_client import (
                     GeminiNotConfigured,
                     generate_brief as _gen,
                 )

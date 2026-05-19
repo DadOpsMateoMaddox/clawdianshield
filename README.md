@@ -70,7 +70,7 @@ The key design decision: observers run on the **host** (not inside the victim) w
 scenarios/<id>.json
         │
         ▼
-runner/executor.py                    ← subprocess engine, safety gate, behavior→cmd map
+engine/executor.py                    ← subprocess engine, safety gate, behavior→cmd map
   docker exec clawdian_victim sh -c "<cmd>"
         │                                        ┌──────────────────────────────────┐
         │  artifacts (real)                      │  collectors/file_observer        │
@@ -126,13 +126,13 @@ python -m clawdianshield.collectors.run \
   --host workstation-1
 
 # Fire the scenario (Terminal 2)
-python clawdianshield/runner/executor.py \
-  clawdianshield/scenarios/fim_burst_tamper.json \
+python clawdianshield/engine/executor.py \
+  clawdianshield/engine/scenarios/fim_burst_tamper.json \
   --container clawdian_victim
 
 # Dry-run any scenario without Docker (validates parsing + safety gate)
-python clawdianshield/runner/executor.py \
-  clawdianshield/scenarios/fim_burst_tamper.json --dry-run
+python clawdianshield/engine/executor.py \
+  clawdianshield/engine/scenarios/fim_burst_tamper.json --dry-run
 ```
 
 ---
@@ -255,7 +255,7 @@ Every run is graded across five dimensions.
 
 ## Telemetry Schema
 
-All observers emit JSONL using the `NormalizedEvent` schema (`clawdianshield/shared/models.py`, Pydantic v2):
+All observers emit JSONL using the `NormalizedEvent` schema (`clawdianshield/unification/models.py`, Pydantic v2):
 
 ```json
 {
