@@ -437,6 +437,45 @@ function renderKillChain() {
   const activePhases = ukcMapping.ukc_phases_represented || [];
   const behaviorsExecuted = ukcMapping.behaviors_executed || [];
 
+  // Detection state: did the sensors actually have eyes on this tactic, or did
+  // it execute into a telemetry blind spot? run.telemetry_coverage maps each
+  // expected telemetry type -> { expected, produced_by:[behaviors] }. A behavior
+  // is "detected" if it produces at least one expected telemetry type that has
+  // a producer; an executed behavior that produces nothing expected = a gap the
+  // SOC would have missed. UKC_BEHAVIOR_PHASE mirrors detection/scorer.py
+  // UKC_MAPPING — keep the two in sync.
+  const UKC_BEHAVIOR_PHASE = {
+    auth_anomalies: "Credential Access",
+    remote_execution_artifacts: "Execution",
+    file_tamper: "Impact",
+    staging: "Collection",
+    persistence_path_changes: "Persistence",
+    anti_forensics: "Defense Evasion",
+    cleanup: "Defense Evasion",
+    exploit_execution: "Exploitation",
+    hello_world_custom: "Execution",
+  };
+  const telemetryCoverage = run.telemetry_coverage || {};
+  const hasCoverageData = Object.keys(telemetryCoverage).length > 0;
+  const detectedBehaviors = new Set();
+  Object.values(telemetryCoverage).forEach((info) => {
+    if (info && info.expected && Array.isArray(info.produced_by)) {
+      info.produced_by.forEach((b) => detectedBehaviors.add(b));
+    }
+  });
+  // phase label -> 'covered' | 'partial' | 'gap'  (only meaningful when active)
+  function phaseCoverState(phaseLabel) {
+    if (!hasCoverageData) return "covered"; // older runs: don't regress styling
+    const behs = behaviorsExecuted.filter(
+      (b) => (UKC_BEHAVIOR_PHASE[b] || "") === phaseLabel
+    );
+    if (behs.length === 0) return "covered"; // active via mapping, no behavior detail
+    const seen = behs.filter((b) => detectedBehaviors.has(b)).length;
+    if (seen === behs.length) return "covered";
+    if (seen === 0) return "gap";
+    return "partial";
+  }
+
   precomputePath();
 
   let totalActive = 0, totalTactics = 0;
@@ -463,7 +502,16 @@ function renderKillChain() {
     
     // Save current active state for rendering
     phase.currentActive = isActive;
+    phase.coverState = isActive ? phaseCoverState(phase.label) : "none";
   });
+
+  // Blind tactics: attacker executed this tactic but it emitted no observed
+  // telemetry at all. Distinct from scenario-level telemetry-class gaps below.
+  const blindTactics = RC_PHASES.filter((p) => p.coverState === "gap").length;
+  const partialTactics = RC_PHASES.filter((p) => p.coverState === "partial").length;
+  // Authoritative scenario gap count — SAME field the coverage panel renders,
+  // so the ring and the coverage list can never disagree.
+  const scenarioGaps = (run.coverage_gaps || []).length;
 
   const VW = 820, VH = 330;
   const CY = 140;
@@ -482,21 +530,36 @@ function renderKillChain() {
   
   RC_PHASES.forEach(phase => {
     const isActive = phase.currentActive;
-    const col = zCol[phase.zone];
+    // Active segment is colored by DETECTION state, not just "attack reached
+    // here": covered = sensors saw it (zone color), partial = amber,
+    // gap = executed into a telemetry blind spot (red, pulsing).
+    const STATE_COL = { covered: zCol[phase.zone], partial: "#f59e0b", gap: "#ef4444" };
+    const isGap = isActive && phase.coverState === "gap";
+    const col = isActive ? (STATE_COL[phase.coverState] || zCol[phase.zone]) : zCol[phase.zone];
     const opacity = isActive ? 1 : 0.5;
     const gap = 2;
     const segLen = phase.len - (gap * 2);
     const segOffset = phase.offset + gap;
-    
+
+    const pulse = isGap
+      ? `<animate attributeName="opacity" values="1;0.45;1" dur="1.1s" repeatCount="indefinite" />`
+      : "";
     svgContent += `<path d="${PATH_D}" fill="none" stroke="${col}" stroke-width="26"
       stroke-dasharray="${segLen} 1000" stroke-dashoffset="-${segOffset}" pathLength="1000"
-      opacity="${opacity}" ${isActive ? `filter="url(#glow-${phase.zone})"` : ""} />`;
+      opacity="${opacity}" ${isActive ? `filter="url(#glow-${phase.zone})"` : ""}>${pulse}</path>`;
 
     if (phase.pEnd) {
       const chs = 11;
       svgContent += `<polygon points="0,${-chs} ${(chs * 0.65).toFixed(1)},0 0,${chs}"
         fill="${col}" opacity="${isActive ? 0.92 : 0.42}"
         transform="translate(${phase.pEnd.x.toFixed(1)},${phase.pEnd.y.toFixed(1)}) rotate(${phase.angleEnd.toFixed(1)})" />`;
+    }
+    if (isGap && phase.pMid) {
+      // ⚠ marker so a missed tactic reads even at a glance / in screenshots
+      svgContent += `<text x="${phase.pMid.x}" y="${phase.pMid.y}" text-anchor="middle" dominant-baseline="central"
+        transform="rotate(${phase.angle.toFixed(1)}, ${phase.pMid.x}, ${phase.pMid.y}) translate(0,-13)"
+        font-family="monospace" font-size="9" font-weight="900" fill="#fecaca"
+        stroke="#000000" stroke-width="2" paint-order="stroke fill">⚠</text>`;
     }
 
     const textOp = isActive ? 1 : 0.82;
@@ -556,6 +619,12 @@ function renderKillChain() {
       `<span class="ukc-stat zone-in"><b>${zoneCounts.in||0}/8</b> IN</span>` +
       `<span class="ukc-stat zone-through"><b>${zoneCounts.through||0}/6</b> THROUGH</span>` +
       `<span class="ukc-stat zone-out"><b>${zoneCounts.out||0}/4</b> OUT</span>` +
+      `<span class="ukc-sep">|</span>` +
+      (hasCoverageData
+        ? `<span class="ukc-stat" style="color:${scenarioGaps ? '#ef4444' : '#22c55e'}">&#9679; <b>${scenarioGaps}</b> telemetry gap${scenarioGaps === 1 ? '' : 's'}</span>` +
+          (blindTactics ? `<span class="ukc-stat" style="color:#ef4444">&#9888; <b>${blindTactics}</b> blind tactic${blindTactics === 1 ? '' : 's'}</span>` : "") +
+          (partialTactics ? `<span class="ukc-stat" style="color:#f59e0b">&#9679; <b>${partialTactics}</b> partial</span>` : "")
+        : `<span class="ukc-stat" style="opacity:0.5">coverage n/a</span>`) +
       `<span class="ukc-sep">&middot;</span>` +
       `<span class="ukc-stat" style="opacity:0.38;font-size:9px">Pols (2017) Ground Truth Mapping</span>`;
       
