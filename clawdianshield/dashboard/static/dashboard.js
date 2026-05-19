@@ -478,12 +478,12 @@ function renderKillChain() {
     <filter id="glow-tracer" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
   `;
 
-  let svgContent = `<path d="${PATH_D}" fill="none" stroke="#1c2433" stroke-width="26" stroke-linecap="round" />`;
+  let svgContent = `<path d="${PATH_D}" fill="none" stroke="#33415a" stroke-width="26" stroke-linecap="round" />`;
   
   RC_PHASES.forEach(phase => {
     const isActive = phase.currentActive;
     const col = zCol[phase.zone];
-    const opacity = isActive ? 1 : 0.2;
+    const opacity = isActive ? 1 : 0.5;
     const gap = 2;
     const segLen = phase.len - (gap * 2);
     const segOffset = phase.offset + gap;
@@ -495,12 +495,12 @@ function renderKillChain() {
     if (phase.pEnd) {
       const chs = 11;
       svgContent += `<polygon points="0,${-chs} ${(chs * 0.65).toFixed(1)},0 0,${chs}"
-        fill="${col}" opacity="${isActive ? 0.92 : 0.16}"
+        fill="${col}" opacity="${isActive ? 0.92 : 0.42}"
         transform="translate(${phase.pEnd.x.toFixed(1)},${phase.pEnd.y.toFixed(1)}) rotate(${phase.angleEnd.toFixed(1)})" />`;
     }
 
-    const textOp = isActive ? 1 : 0.55;
-    const fw = isActive ? 800 : 600;
+    const textOp = isActive ? 1 : 0.82;
+    const fw = isActive ? 800 : 700;
 
     svgContent += `<text x="${phase.pMid.x}" y="${phase.pMid.y}" text-anchor="middle" dominant-baseline="central"
       transform="rotate(${phase.angle.toFixed(1)}, ${phase.pMid.x}, ${phase.pMid.y})"
@@ -525,7 +525,7 @@ function renderKillChain() {
   centerLabels.forEach(c => {
     const col = zCol[c.id];
     const zoneActive = zoneCounts[c.id] > 0;
-    const opacity = zoneActive ? 1 : 0.4;
+    const opacity = zoneActive ? 1 : 0.62;
     svgContent += `<text x="${c.cx}" y="${CY - 6}" text-anchor="middle" font-family="monospace" font-size="26" font-weight="900" fill="${col}" stroke="#000000" stroke-width="1.5" paint-order="stroke fill" opacity="${opacity}" ${zoneActive ? `filter="url(#glow-${c.id})"` : ""}>${c.label}</text>`;
     svgContent += `<text x="${c.cx}" y="${CY + 14}" text-anchor="middle" font-family="monospace" font-size="8" font-weight="700" fill="#ffffff" stroke="#000000" stroke-width="2" paint-order="stroke fill" opacity="${opacity}" letter-spacing="0.1em">${c.subtitle.toUpperCase()}</text>`;
     if (zoneActive) {
