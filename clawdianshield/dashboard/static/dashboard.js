@@ -533,20 +533,24 @@ function renderKillChain() {
     // Active segment is colored by DETECTION state, not just "attack reached
     // here": covered = sensors saw it (zone color), partial = amber,
     // gap = executed into a telemetry blind spot (red, pulsing).
-    const STATE_COL = { covered: zCol[phase.zone], partial: "#f59e0b", gap: "#ef4444" };
     const isGap = isActive && phase.coverState === "gap";
+    // gap = desaturated slate, NO glow, faint heartbeat: "no telemetry = no
+    // signal". Deliberately not red so a blind tactic never collides with the
+    // OUT zone's red identity. covered = zone color, partial = amber.
+    const STATE_COL = { covered: zCol[phase.zone], partial: "#f59e0b", gap: "#8b97a8" };
     const col = isActive ? (STATE_COL[phase.coverState] || zCol[phase.zone]) : zCol[phase.zone];
-    const opacity = isActive ? 1 : 0.5;
+    const opacity = isGap ? 0.62 : (isActive ? 1 : 0.5);
     const gap = 2;
     const segLen = phase.len - (gap * 2);
     const segOffset = phase.offset + gap;
 
+    const segGlow = (isActive && !isGap) ? `filter="url(#glow-${phase.zone})"` : "";
     const pulse = isGap
-      ? `<animate attributeName="opacity" values="1;0.45;1" dur="1.1s" repeatCount="indefinite" />`
+      ? `<animate attributeName="opacity" values="0.62;0.28;0.62" dur="1.3s" repeatCount="indefinite" />`
       : "";
     svgContent += `<path d="${PATH_D}" fill="none" stroke="${col}" stroke-width="26"
       stroke-dasharray="${segLen} 1000" stroke-dashoffset="-${segOffset}" pathLength="1000"
-      opacity="${opacity}" ${isActive ? `filter="url(#glow-${phase.zone})"` : ""}>${pulse}</path>`;
+      opacity="${opacity}" ${segGlow}>${pulse}</path>`;
 
     if (phase.pEnd) {
       const chs = 11;
@@ -558,7 +562,7 @@ function renderKillChain() {
       // ⚠ marker so a missed tactic reads even at a glance / in screenshots
       svgContent += `<text x="${phase.pMid.x}" y="${phase.pMid.y}" text-anchor="middle" dominant-baseline="central"
         transform="rotate(${phase.angle.toFixed(1)}, ${phase.pMid.x}, ${phase.pMid.y}) translate(0,-13)"
-        font-family="monospace" font-size="9" font-weight="900" fill="#fecaca"
+        font-family="monospace" font-size="9" font-weight="900" fill="#e2e8f0"
         stroke="#000000" stroke-width="2" paint-order="stroke fill">⚠</text>`;
     }
 
@@ -622,7 +626,7 @@ function renderKillChain() {
       `<span class="ukc-sep">|</span>` +
       (hasCoverageData
         ? `<span class="ukc-stat" style="color:${scenarioGaps ? '#ef4444' : '#22c55e'}">&#9679; <b>${scenarioGaps}</b> telemetry gap${scenarioGaps === 1 ? '' : 's'}</span>` +
-          (blindTactics ? `<span class="ukc-stat" style="color:#ef4444">&#9888; <b>${blindTactics}</b> blind tactic${blindTactics === 1 ? '' : 's'}</span>` : "") +
+          (blindTactics ? `<span class="ukc-stat" style="color:#8b97a8">&#9888; <b>${blindTactics}</b> blind tactic${blindTactics === 1 ? '' : 's'}</span>` : "") +
           (partialTactics ? `<span class="ukc-stat" style="color:#f59e0b">&#9679; <b>${partialTactics}</b> partial</span>` : "")
         : `<span class="ukc-stat" style="opacity:0.5">coverage n/a</span>`) +
       `<span class="ukc-sep">&middot;</span>` +
